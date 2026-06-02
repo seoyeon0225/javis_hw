@@ -7,6 +7,7 @@ import pyaudio
 import speech_recognition as sr
 
 class JarvisRecorder:
+    # 문제 7: 음성 녹음 클래스 (PEP 8: CapWord)
     def __init__(self):
         self.chunk = 1024
         self.format = pyaudio.paInt16
@@ -41,6 +42,7 @@ class JarvisRecorder:
         stream.close()
         audio.terminate()
 
+        # 녹음된 데이터를 .wav 파일로 저장
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'record_{timestamp}.wav'
         filepath = os.path.join(self.output_folder, filename)
@@ -54,8 +56,31 @@ class JarvisRecorder:
         print(f'녹음 파일이 저장되었습니다: {filepath}')
         return filepath
 
+    # [추가됨] 녹음된 오디오를 스피커로 재생하는 함수
+    def play_audio(self, filepath):
+        print('녹음된 음성을 스피커로 재생합니다... 🔊')
+        with wave.open(filepath, 'rb') as wf:
+            audio = pyaudio.PyAudio()
+            stream = audio.open(
+                format=audio.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True  # 스피커 출력 설정
+            )
+            
+            data = wf.readframes(self.chunk)
+            while data:
+                stream.write(data)
+                data = wf.readframes(self.chunk)
+                
+            stream.stop_stream()
+            stream.close()
+            audio.terminate()
+        print('재생이 완료되었습니다.')
+
 
 class JavisSttManager:
+    # 수행과제: STT 변환 및 검색 클래스 (PEP 8: CapWord)
     def __init__(self):
         self.recognizer = sr.Recognizer()
 
@@ -149,14 +174,17 @@ class JavisSttManager:
 if __name__ == '__main__':
     target_dir = 'records'
     
-    # 1. 먼저 5초간 음성을 녹음하여 파일을 생성합니다.
+    # 1. 5초간 음성을 녹음하여 파일을 생성합니다.
     recorder = JarvisRecorder()
-    recorder.record_audio(duration=5)
+    saved_filepath = recorder.record_audio(duration=5)
     
-    # 2. 방금 녹음된 파일을 불러와서 STT로 변환 후 CSV로 저장합니다.
+    # 2. 방금 녹음된 파일을 스피커로 재생합니다.
+    recorder.play_audio(saved_filepath)
+    
+    # 3. 방금 녹음된 파일을 불러와서 STT로 변환 후 CSV로 저장합니다.
     stt_manager = JavisSttManager()
     stt_manager.process_directory(target_dir)
     
-    # 3. CSV 파일 안에서 특정 키워드를 검색합니다.
+    # 4. CSV 파일 안에서 특정 키워드를 검색합니다.
     search_word = '화성'
     stt_manager.search_keyword_in_csv(search_word, target_dir)
